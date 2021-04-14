@@ -116,8 +116,8 @@ def main(adress):
         return(kepler_map_html)
 
     except : 
-        
-        print('location not found ! 😲')  
+
+        st.text('location not found ! 😲')
 
 
 #Header
