@@ -45,76 +45,79 @@ def main(adress):
     geocode = RateLimiter(locator.geocode, min_delay_seconds=0.1)
     
     #For the production
-    #try :
+    try :
         
-    st.text('adress found ! 👌 ')
-    st.text('☕☕☕ Prepare yourself a coffee the map will arrive in 2 minute ! ☕☕☕')
+        st.text('adress found ! 👌 ')
+        st.text('☕☕☕ Prepare yourself a coffee the map will arrive in 2 minute ! ☕☕☕')
         
-    allowed_distance = 10000
+        allowed_distance = 10000
 
-    #Apply the geocoding to retrieve the lat & long
-    df_adress["loc"]  = df_adress["adress"].apply(geocode)
-    df_adress["lat"]  = df_adress["loc"].apply(lambda x : x[1][0])
-    df_adress["lon"]  = df_adress["loc"].apply(lambda x : x[1][1])
-    df_adress["city"] = df_adress["loc"].apply(lambda x : x[0].split(',')[4])
+        #Apply the geocoding to retrieve the lat & long
+        df_adress["loc"]  = df_adress["adress"].apply(geocode)
+        df_adress["lat"]  = df_adress["loc"].apply(lambda x : x[1][0])
+        df_adress["lon"]  = df_adress["loc"].apply(lambda x : x[1][1])
+        df_adress["city"] = df_adress["loc"].apply(lambda x : x[0].split(',')[4])
 
-    #Create the geodataframe
-    gdf = gpd.GeoDataFrame(df_adress, geometry = gpd.points_from_xy(df_adress.lon, df_adress.lat), crs = 'EPSG:4326')
-    gdf['allowed_distance'] = allowed_distance
+        #Create the geodataframe
+        gdf = gpd.GeoDataFrame(df_adress, geometry = gpd.points_from_xy(df_adress.lon, df_adress.lat), crs = 'EPSG:4326')
+        gdf['allowed_distance'] = allowed_distance
         
         
-    #print('location not found ! 😲')
 
-    #Create the max distance authorized
-    gdf_lockdown = gpd.GeoDataFrame(df_adress, geometry = gpd.points_from_xy(df_adress.lon, df_adress.lat), crs = 'EPSG:4326')
-    gdf_lockdown = gdf_lockdown.to_crs('EPSG:2154')
-    gdf_lockdown['geometry'] = gdf_lockdown['geometry'].buffer(allowed_distance)
-    gdf_lockdown = gdf_lockdown.to_crs('EPSG:4326')
+        #Create the max distance authorized
+        gdf_lockdown = gpd.GeoDataFrame(df_adress, geometry = gpd.points_from_xy(df_adress.lon, df_adress.lat), crs = 'EPSG:4326')
+        gdf_lockdown = gdf_lockdown.to_crs('EPSG:2154')
+        gdf_lockdown['geometry'] = gdf_lockdown['geometry'].buffer(allowed_distance)
+        gdf_lockdown = gdf_lockdown.to_crs('EPSG:4326')
     
-    #Retrieve the value from osm, transform it to a geodataframe, reset the index and keep only the right columns
-    gdf_city_edge = ox.graph_to_gdfs(ox.graph_from_polygon(gdf_lockdown['geometry'][0], network_type='drive'), nodes= False)[['name', 'highway', 'geometry']]   
+        #Retrieve the value from osm, transform it to a geodataframe, reset the index and keep only the right columns
+        gdf_city_edge = ox.graph_to_gdfs(ox.graph_from_polygon(gdf_lockdown['geometry'][0], network_type='drive'), nodes= False)[['name', 'highway', 'geometry']]   
     
-    #Memory optimisations
-    gdf_city_edge['highway'] = gdf_city_edge['highway'].apply(lambda x : str(x) )
-    gdf_city_edge['highway'] = gdf_city_edge['highway'].astype("category") 
+        #Memory optimisations
+        gdf_city_edge['highway'] = gdf_city_edge['highway'].apply(lambda x : str(x) )
+        gdf_city_edge['highway'] = gdf_city_edge['highway'].astype("category") 
     
-    gdf_city_edge['name'] = gdf_city_edge['name'].apply(lambda x : str(x) )
-    gdf_city_edge['name'] = gdf_city_edge['name'].astype("category")
+        gdf_city_edge['name'] = gdf_city_edge['name'].apply(lambda x : str(x) )
+        gdf_city_edge['name'] = gdf_city_edge['name'].astype("category")
 
 
-    available_street = gdf_city_edge['name'].copy().reset_index()['name'].drop_duplicates().dropna()
+        available_street = gdf_city_edge['name'].copy().reset_index()['name'].drop_duplicates().dropna()
 
-    st.sidebar.text('If the street is inside the list ')
-    st.sidebar.text('the location is at less than 10km !')
-    st.sidebar.selectbox('Available streets:', available_street)
+        st.sidebar.text('If the street is inside the list ')
+        st.sidebar.text('the location is at less than 10km !')
+        st.sidebar.selectbox('Available streets:', available_street)
 
-    with open('config.json') as f:
-        config = json.load(f)
+        with open('config.json') as f:
+            config = json.load(f)
             
-    config['config']['mapState']['latitude'] = df_adress["lat"][0]
-    config['config']['mapState']['longitude'] = df_adress["lon"][0]
-    config['config']['mapStyle']['styleType'] = 'satellite'
+        config['config']['mapState']['latitude'] = df_adress["lat"][0]
+        config['config']['mapState']['longitude'] = df_adress["lon"][0]
+        config['config']['mapStyle']['styleType'] = 'satellite'
      
-    st.text('Map loading...')
+        st.text('Map loading...')
   
-    #Some modification on the confg file (use config = config to retrieve th last version)
-    #kepler_map = keplergl.KeplerGl(height=400, data={"city lockdown": gdf_city_edge_reduce.copy(), "location" : gdf.drop(['loc'], axis = 1).copy(), "lockdown" : gdf_lockdown.drop(['loc'], axis = 1).copy()}, config = config)._repr_html_()
+        #Some modification on the confg file (use config = config to retrieve th last version)
+        #kepler_map = keplergl.KeplerGl(height=400, data={"city lockdown": gdf_city_edge_reduce.copy(), "location" : gdf.drop(['loc'], axis = 1).copy(), "lockdown" : gdf_lockdown.drop(['loc'], axis = 1).copy()}, config = config)._repr_html_()
        
-    #Init the map
-    kepler_map = keplergl.KeplerGl(height=400)
+        #Init the map
+        kepler_map = keplergl.KeplerGl(height=400)
     
-    #Adding the data
-    kepler_map.add_data(data=gdf_city_edge, name='city lockdown')
-    kepler_map.add_data(data=gdf.drop(['loc'], axis = 1), name='location')
-    kepler_map.add_data(data=gdf_lockdown.drop(['loc'], axis = 1), name = 'lockdown')
+        #Adding the data
+        kepler_map.add_data(data=gdf_city_edge, name='city lockdown')
+        kepler_map.add_data(data=gdf.drop(['loc'], axis = 1), name='location')
+        kepler_map.add_data(data=gdf_lockdown.drop(['loc'], axis = 1), name = 'lockdown')
     
-    #Adding the config
-    kepler_map.config = config
+        #Adding the config
+        kepler_map.config = config
 
-    #Transform to a html file
-    kepler_map_html = kepler_map._repr_html_()
+        #Transform to a html file
+        kepler_map_html = kepler_map._repr_html_()
     
-    return(kepler_map_html)  
+        return(kepler_map_html)
+
+    except : 
+        
+        print('location not found ! 😲')  
 
 
 #Header
